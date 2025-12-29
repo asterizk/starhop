@@ -126,7 +126,7 @@ if [ ${DO_GH} -eq 1 ]; then
     fi
     gh release create "v${VERSION}" "${ARGS[@]}" \
       --title "StarHop ${VERSION}" \
-      --notes $'Signed, notarized release.\nIncludes StarHop Install.app and StarHop Uninstall.app.\nDMG by default; ZIPs included only when requested.'
+      --notes $'What’s included:\n• StarHop Install.app\n• StarHop Uninstall.app'
   else
     say "GitHub CLI not found; skipping release creation. (Install with 'brew install gh')"
   fi
