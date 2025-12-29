@@ -1,7 +1,7 @@
 #!/bin/bash
-# uninstall_apod_standalone.command — APOD Grabber Uninstaller (idempotent, standalone)
+# uninstall_starhop.command — StarHop Uninstaller
 # Removes LaunchAgent and the installed app data in:
-#   ~/Library/Application Support/APOD Grabber
+#   ~/Library/Application Support/com.krishengreenwell.StarHop
 # Shows a concise modal summary of real actions taken.
 set -euo pipefail
 
@@ -22,13 +22,13 @@ ICON_PATH="$APP_BUNDLE/Contents/Resources/$ICON_NAME"
 [[ -f "$ICON_PATH" ]] || ICON_PATH="$APP_BUNDLE"   # fallback to bundle as icon
 
 # Paths
-LA_PLIST_ID="com.krishengreenwell.apod"
+LA_PLIST_ID="com.krishengreenwell.starhop"
 LA_DIR="${HOME}/Library/LaunchAgents"
 LA_PLIST_PATH="${LA_DIR}/${LA_PLIST_ID}.plist"
-APP_SUPPORT="${HOME}/Library/Application Support/APOD Grabber"
+APP_SUPPORT="${HOME}/Library/Application Support/com.krishengreenwell.StarHop"
 
 # ---------- LaunchAgent (stop + remove if present) ----------
-LA_PLIST_ID="com.krishengreenwell.apod"
+LA_PLIST_ID="com.krishengreenwell.starhop"
 LA_DIR="${HOME}/Library/LaunchAgents"
 LA_PLIST_PATH="${LA_DIR}/${LA_PLIST_ID}.plist"
 USER_ID="$(id -u)"
@@ -55,9 +55,9 @@ fi
 
 # Build summary
 if [ ${#summary[@]} -eq 0 ]; then
-  SUMMARY_TEXT="APOD Grabber was already fully uninstalled."
+  SUMMARY_TEXT="StarHop was already fully uninstalled."
 else
-  SUMMARY_TEXT="APOD Grabber has been uninstalled.\n\n"
+  SUMMARY_TEXT="StarHop has been uninstalled.\n\n"
   for line in "${summary[@]}"; do
     SUMMARY_TEXT+="• ${line}\n"
   done

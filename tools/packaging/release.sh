@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# release.sh — Build, sign, notarize, staple, and package APOD apps for release.
+# release.sh — Build, sign, notarize, staple, and package StarHop apps for release.
 #
 # Defaults: builds a notarized DMG (with both apps) + checksum.
 #           ZIPs are optional (via --zip).
 #
 # Usage:
-#   VERSION=1.2.3 BUNDLE_PREFIX=com.krishengreenwell.apod \
+#   VERSION=1.2.3 BUNDLE_PREFIX=com.krishengreenwell.starhop \
 #   ./tools/packaging/release.sh "Developer ID Application: Your Name (TEAMID)" NOTARY_PROFILE [--zip] [--gh]
 #
 # Flags:
@@ -25,7 +25,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 VERSION="${VERSION:-1.0.0}"
-BUNDLE_PREFIX="${BUNDLE_PREFIX:-com.krishengreenwell.apod}"
+BUNDLE_PREFIX="${BUNDLE_PREFIX:-com.krishengreenwell.starhop}"
 
 DEV_ID="${1:-${DEV_ID:-}}"
 PROFILE="${2:-${NOTARY_PROFILE:-${AC_PROFILE:-}}}"
@@ -51,7 +51,7 @@ if [[ -z "${DEV_ID}" || -z "${PROFILE}" ]]; then
   exit 1
 fi
 
-APPS=("APOD Install.app" "APOD Uninstall.app")
+APPS=("StarHop Install.app" "StarHop Uninstall.app")
 
 need () { command -v "$1" >/dev/null 2>&1 || { echo "ERROR: missing tool '$1'"; exit 1; }; }
 need xcrun
@@ -87,7 +87,7 @@ else
   done
 fi
 
-DMG_PATH="${DIST_DIR}/APOD-Grabber-${VERSION}.dmg"
+DMG_PATH="${DIST_DIR}/StarHop-${VERSION}.dmg"
 if [ "${DO_DMG}" -eq 1 ]; then
   need hdiutil
   say "Step 3/4: Build DMG with both apps"
@@ -95,7 +95,7 @@ if [ "${DO_DMG}" -eq 1 ]; then
   rm -rf "${STAGING}"
   mkdir -p "${STAGING}"
   cp -R "${APPS[@]}" "${STAGING}/"
-  hdiutil create -volname "APOD Grabber" -srcfolder "${STAGING}" -fs HFS+ -format UDZO -ov "${DMG_PATH}"
+  hdiutil create -volname "StarHop" -srcfolder "${STAGING}" -fs HFS+ -format UDZO -ov "${DMG_PATH}"
   rm -rf "${STAGING}"
 
   say "Notarize + staple DMG"
@@ -125,8 +125,8 @@ if [ ${DO_GH} -eq 1 ]; then
       done
     fi
     gh release create "v${VERSION}" "${ARGS[@]}" \
-      --title "APOD Grabber ${VERSION}" \
-      --notes "Signed, notarized release.\nIncludes APOD Install.app and APOD Uninstall.app.\nDMG by default; ZIPs included only when requested."
+      --title "StarHop ${VERSION}" \
+      --notes "Signed, notarized release.\nIncludes StarHop Install.app and StarHop Uninstall.app.\nDMG by default; ZIPs included only when requested."
   else
     say "GitHub CLI not found; skipping release creation. (Install with 'brew install gh')"
   fi

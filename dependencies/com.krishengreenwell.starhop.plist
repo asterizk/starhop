@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>com.krishengreenwell.apod</string>
+	<string>com.krishengreenwell.starhop</string>
 	<key>LowPriorityIO</key>
 	<true/>
 	<key>Nice</key>
@@ -12,15 +12,15 @@
 	<array>
 		<string>/usr/local/bin/fdautil</string>
 		<string>exec</string>
-		<string>/Users/asterizk/Projects/GitHub/apod-grabber/.venv/bin/python</string>
-		<string>apodgrab.py</string>
+		<string>/Users/asterizk/Projects/GitHub/starhop/.venv/bin/python</string>
+		<string>starhop.py</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>StandardErrorPath</key>
-	<string>/tmp/com.krishengreenwell.apod.err</string>
+	<string>/tmp/com.krishengreenwell.starhop.err</string>
 	<key>StandardOutPath</key>
-	<string>/tmp/com.krishengreenwell.apod.out</string>
+	<string>/tmp/com.krishengreenwell.starhop.out</string>
 	<key>StartCalendarInterval</key>
 	<dict>
 		<key>Hour</key>
@@ -29,6 +29,6 @@
 		<integer>10</integer>
 	</dict>
 	<key>WorkingDirectory</key>
-	<string>/Users/asterizk/Projects/GitHub/apod-grabber</string>
+	<string>/Users/asterizk/Projects/GitHub/starhop</string>
 </dict>
 </plist>

@@ -1,5 +1,4 @@
 # Core runtime deps
-beautifulsoup4>=4.12
 pillow>=11.0        # 11.x supports Python 3.13 and free-threaded mode
 # Only needed on macOS for the native wallpaper setter:
 pyobjc-framework-Cocoa>=11.0 ; platform_system == "Darwin"

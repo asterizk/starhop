@@ -3,8 +3,8 @@
 StarHop overlays today's NASA APOD image + explanation (or video thumbnail when needed).
 
 Usage examples:
-  NASA_APOD_KEY=YOURKEY python3 apodgrab_api.py
-  python3 apodgrab_api.py --api-key YOURKEY
+  NASA_APOD_KEY=YOURKEY python3 starhop.py
+  python3 starhop.py --api-key YOURKEY
 
 This preserves your captioning + macOS wallpaper behavior from the old script.
 """
@@ -31,7 +31,7 @@ if sys.version_info < (3, 9):
     sys.exit("This app needs Python 3.9 or newer. Please install Python 3 from python.org.")
 
 API_BASE = "https://api.nasa.gov/planetary/apod"
-KEY_FILE = os.path.expanduser("~/Library/Application Support/StarHop/nasa_apod_key")
+KEY_FILE = os.path.expanduser("~/Library/Application Support/com.krishengreenwell.StarHop/nasa_apod_key")
 
 def resolve_api_key(cli_value: Optional[str]) -> str:
     # 1) CLI flag wins if provided
@@ -198,6 +198,9 @@ def pick_image_url(apod: Dict) -> Optional[str]:
 
 # ----------------------------- Main flow -----------------------------
 def main():
+    import os, time
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] StarHop run start (pid={os.getpid()})")
+
     parser = argparse.ArgumentParser(
         description="Get today's APOD via NASA API and set as macOS wallpaper with caption."
     )
@@ -278,10 +281,10 @@ def main():
     # The offset of the text box from the upper left corner is a factor of the source image dimensions
     writing.text((int(bg.width * 0.05), int(bg.height * 0.11)), explanation_wrapped, font=desc_font)
 
-    # Save to ~/Pictures/apod/<today>.png
-    os.makedirs(os.path.expanduser('~/Pictures/apod'), exist_ok=True)
+    # Save to ~/Pictures/StarHop/<today>.png
+    os.makedirs(os.path.expanduser('~/Pictures/StarHop'), exist_ok=True)
     today = date.today()
-    out_path = os.path.expanduser(f"~/Pictures/apod/{today}.png")
+    out_path = os.path.expanduser(f"~/Pictures/StarHop/{today}.png")
     bg.save(out_path)
 
     print('Saved captioned image to:', out_path)
