@@ -127,3 +127,21 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Packaging artifacts
+*.zip
+*.dmg
+
+# Built products (unsigned source builds - safe to commit)
+# Signed/notarized versions should NEVER be committed
+/StarHop Install.app/
+/StarHop Uninstall.app/
+/APOD Install.app/
+/APOD Uninstall.app/
+
+# Code signing metadata inside any bundle
+**/_CodeSignature/
+**/CodeResources
+
+# macOS cruft
+.DS_Store

@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+THIS_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_ROOT="${THIS_DIR}/../.."
+APP_PARENT="$(cd "${APP_ROOT}/.." && pwd)"
+SCRIPT_NAME="uninstall_apod.command"
+SCRIPT_PATH="${APP_ROOT}/Contents/Resources/${SCRIPT_NAME}"
+
+if [ ! -f "${SCRIPT_PATH}" ]; then
+  osascript -e 'display dialog "Embedded script not found:\n\n'"${SCRIPT_NAME}"'\n\nReinstall or re-download this app." buttons {"OK"} default button 1 with icon stop'
+  exit 1
+fi
+
+osascript <<OSA
+tell application "Terminal"
+  activate
+  do script "cd " & quoted form of POSIX path of "${APP_PARENT}" & "; " & quoted form of POSIX path of "${SCRIPT_PATH}"
+end tell
+OSA
