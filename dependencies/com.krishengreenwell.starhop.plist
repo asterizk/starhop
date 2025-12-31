@@ -10,7 +10,7 @@
 	<integer>1</integer>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/usr/local/bin/fdautil</string>
+		<string>/Applications/LaunchControl.app/Contents/MacOS/fdautil</string>
 		<string>exec</string>
 		<string>/Users/asterizk/Projects/GitHub/starhop/.venv/bin/python</string>
 		<string>starhop.py</string>

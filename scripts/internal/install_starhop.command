@@ -171,12 +171,19 @@ if [ ! -d "$LC_APP" ]; then
   exit 1
 fi
 FDAUTIL=""
-if [ -x "/Applications/LaunchControl.app/Contents/Helpers/fdautil" ]; then
+if [ -x "/Applications/LaunchControl.app/Contents/MacOS/fdautil" ]; then
+  # LaunchControl >= 2.10
+  FDAUTIL="/Applications/LaunchControl.app/Contents/MacOS/fdautil"
+elif [ -x "/Applications/LaunchControl.app/Contents/Helpers/fdautil" ]; then
+  # LaunchControl < 2.10
   FDAUTIL="/Applications/LaunchControl.app/Contents/Helpers/fdautil"
 elif [ -x "/usr/local/bin/fdautil" ]; then
+  # LaunchControl optionally allows install here
   FDAUTIL="/usr/local/bin/fdautil"
 else
-  CANDIDATE="$(mdfind 'kMDItemFSName == \"fdautil\"c' | grep -i \"LaunchControl\" | head -n 1 || true)"
+  CANDIDATE="$(
+    { mdfind 'kMDItemFSName == "fdautil"c' 2>/dev/null | grep -i 'LaunchControl\.app/Contents' | head -n1; } || true
+  )"
   if [ -n "$CANDIDATE" ] && [ -x "$CANDIDATE" ]; then
     FDAUTIL="$CANDIDATE"
   fi
