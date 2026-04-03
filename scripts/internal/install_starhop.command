@@ -35,6 +35,45 @@ stop_progress() {
   unset PROGRESS_PID
 }
 
+show_fdautil_prep() {
+  local helper_status="$1"
+  ICON_PATH="$ICON_PATH" HELPER_STATUS="$helper_status" /usr/bin/osascript <<'OSA'
+set iconPath to system attribute "ICON_PATH"
+set helperStatus to system attribute "HELPER_STATUS"
+set iconAlias to (POSIX file iconPath) as alias
+
+display dialog "StarHop uses LaunchControl's helper app fdautil so wallpaper updates can run unattended." & return & return & ¬
+  helperStatus & return & return & ¬
+  "After installation finishes, StarHop can open LaunchControl for you." & return & ¬
+  "In LaunchControl, go to Settings... -> Utilities -> fdautil." & return & ¬
+  "Click Install, then click Full Disk Access. When System Settings opens, turn on the toggle for fdautil." ¬
+  buttons {"Continue"} default button "Continue" with icon iconAlias
+OSA
+}
+
+show_fdautil_finish() {
+  local helper_status="$1"
+  ICON_PATH="$ICON_PATH" HELPER_STATUS="$helper_status" /usr/bin/osascript <<'OSA'
+set iconPath to system attribute "ICON_PATH"
+set helperStatus to system attribute "HELPER_STATUS"
+set iconAlias to (POSIX file iconPath) as alias
+
+set dlg to display dialog "StarHop installed." & return & return & ¬
+  "Next, finish LaunchControl setup for fdautil:" & return & return & ¬
+  "1. Open LaunchControl" & return & ¬
+  "2. Go to Settings... -> Utilities -> fdautil" & return & ¬
+  "3. Click Install" & return & ¬
+  "4. Click Full Disk Access" & return & ¬
+  "5. In System Settings, turn on the toggle for fdautil" & return & return & ¬
+  helperStatus ¬
+  buttons {"Not Now","Open LaunchControl"} default button "Open LaunchControl" with icon iconAlias
+
+if button returned of dlg is "Open LaunchControl" then
+  do shell script "open -a LaunchControl"
+end if
+OSA
+}
+
 
 # Run natively even if launched under Rosetta, but keep errors visible to the GUI wrapper
 if [ "${STARHOP_FORCE_ARM64:-0}" != 1 ] && [ "$(uname -m)" != "arm64" ]; then
@@ -196,6 +235,16 @@ else
 fi
 say_msg "Using fdautil at: ${FDAUTIL:-<not found>}"
 
+if [ -n "${FDAUTIL:-}" ]; then
+  FDAUTIL_STATUS="Detected existing fdautil helper at:
+${FDAUTIL}
+
+If wallpaper updates do not run unattended, verify fdautil still has Full Disk Access enabled in System Settings."
+else
+  FDAUTIL_STATUS="fdautil is not installed yet. In LaunchControl, go to Settings... -> Utilities -> fdautil, then click Install and Full Disk Access."
+fi
+show_fdautil_prep "${FDAUTIL_STATUS}"
+
 # Show progress window for the long-running install phase
 start_progress
 
@@ -280,14 +329,6 @@ say_msg "StarHop run finished with status: ${APP_RC}"
 stop_progress
 trap - EXIT INT TERM   # clear trap if you want
 
-ICON_PATH="$ICON_PATH" /usr/bin/osascript <<'OSA'
-set p to system attribute "ICON_PATH"
-set iconAlias to (POSIX file p) as alias
-set dlg to display dialog "StarHop installed.\n\nOpen LaunchControl now to grant fdautil permissions (Automation → System Events/Finder)?" ¬
-  buttons {"Not Now","Open LaunchControl"} default button "Open LaunchControl" with icon iconAlias
-if button returned of dlg is "Open LaunchControl" then
-  do shell script "open -a LaunchControl"
-end if
-OSA
+show_fdautil_finish "${FDAUTIL_STATUS}"
 
 exit $APP_RC
