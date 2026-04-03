@@ -44,7 +44,7 @@ To let wallpaper updates run unattended, finish LaunchControl setup for fdautil:
 
 1. Open LaunchControl.
 2. Go to Settings... -> Utilities -> fdautil.
-3. Click Install.
+3. If needed, click Install.
 4. Click Full Disk Access.
 5. When System Settings opens, turn on the toggle for fdautil.
 
@@ -227,10 +227,6 @@ else
   fi
 fi
 say_msg "Using fdautil at: ${FDAUTIL:-<not found>}"
-if [ -z "${FDAUTIL:-}" ]; then
-  /usr/bin/osascript -e 'display dialog "LaunchControl is installed, but its helper app fdautil is not installed yet.\n\nOpen LaunchControl, go to Settings... -> Utilities -> fdautil, click Install, then run StarHop Install.app again." buttons {"OK"} default button 1 with icon note'
-  exit 1
-fi
 
 # Show progress window for the long-running install phase
 start_progress
@@ -267,10 +263,18 @@ cp -f "${SRC_PLIST}" "${DST_PLIST}"
 
 /usr/libexec/PlistBuddy -c 'Delete :ProgramArguments' "$DST_PLIST" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c 'Add :ProgramArguments array' "$DST_PLIST"
-/usr/libexec/PlistBuddy -c "Add :ProgramArguments:0 string ${FDAUTIL}" "$DST_PLIST"
-/usr/libexec/PlistBuddy -c 'Add :ProgramArguments:1 string exec' "$DST_PLIST"
-/usr/libexec/PlistBuddy -c "Add :ProgramArguments:2 string ${PYTHON_BIN}" "$DST_PLIST"
-/usr/libexec/PlistBuddy -c "Add :ProgramArguments:3 string ${APP_SUPPORT}/starhop.py" "$DST_PLIST"
+if [ -n "${FDAUTIL:-}" ]; then
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:0 string ${FDAUTIL}" "$DST_PLIST"
+  /usr/libexec/PlistBuddy -c 'Add :ProgramArguments:1 string exec' "$DST_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:2 string ${PYTHON_BIN}" "$DST_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:3 string ${APP_SUPPORT}/starhop.py" "$DST_PLIST"
+else
+  # no fdautil --> run directly
+  /usr/libexec/PlistBuddy -c 'Add :ProgramArguments:0 string /usr/bin/arch' "$DST_PLIST"
+  /usr/libexec/PlistBuddy -c 'Add :ProgramArguments:1 string -arm64' "$DST_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:2 string ${PYTHON_BIN}" "$DST_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:3 string ${APP_SUPPORT}/starhop.py" "$DST_PLIST"
+fi
 
 # WorkingDirectory
 /usr/libexec/PlistBuddy -c "Set :WorkingDirectory ${APP_SUPPORT}" "$DST_PLIST" 2>/dev/null || \
