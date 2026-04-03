@@ -60,6 +60,10 @@ make_app () {
     cp "${REPO_ROOT}/starhop.py"                      "${APP_RES}/payload/"
     cp "${REPO_ROOT}/requirements.txt"                 "${APP_RES}/payload/"
     cp "${DEP_DIR}/com.krishengreenwell.starhop.plist"    "${APP_RES}/payload/"
+    if [ -d "${RES_DIR}/fonts" ]; then
+      mkdir -p "${APP_RES}/payload/fonts"
+      cp -f "${RES_DIR}/fonts/"* "${APP_RES}/payload/fonts/"
+    fi
   fi
 
   # Runner: run embedded script in foreground, log to a single file (install.log)

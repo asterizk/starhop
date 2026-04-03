@@ -9,11 +9,13 @@ Usage examples:
 This preserves your captioning + macOS wallpaper behavior from the old script.
 """
 from __future__ import annotations
+from pathlib import Path
 
 # stdlib
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -23,6 +25,9 @@ import urllib.parse
 import urllib.request
 from datetime import date
 from typing import Dict, Optional
+
+# --- font loader (with a clear search path + one-time debug print) ---
+from functools import lru_cache
 
 # third‑party
 from PIL import Image, ImageFont, ImageDraw  # pip install pillow
@@ -63,35 +68,55 @@ def resolve_api_key(cli_value: Optional[str]) -> str:
 # Given a font, wrap text into a given set of dimensions
 #   see https://stackoverflow.com/a/62418837
 
-def text_wrap(text, font, writing, max_width, max_height):
-    def _dims(s):
-        l, t, r, b = writing.multiline_textbbox((0, 0), s, font=font)
-        return (r - l, b - t)
+def wrap_to_box(draw: ImageDraw.ImageDraw, text: str, base_pt: int,
+                box_w: int, box_h: int, font_candidates: list[str],
+                line_gap_px: int = 4) -> tuple[str, "ImageFont.FreeTypeFont", bool]:
+    """
+    Returns (wrapped_text, font, fully_fit) that fits in (box_w x box_h). Uses
+    draw.textlength for width and shrinks the font size if total height would overflow.
+    """
+    words = clean_text(text).split(" ")
 
-    def _composed():
-        return '\n'.join(' '.join(line) for line in lines if line)
+    def layout(pt: int):
+        f = load_font_chain(pt, font_candidates)
+        asc, desc = f.getmetrics()
+        line_h = asc + desc + line_gap_px
+        lines, line, h = [], "", 0
+        consumed_all_words = True
+        for idx, w in enumerate(words):
+            candidate = w if not line else f"{line} {w}"
+            if draw.textlength(candidate, font=f) <= box_w:
+                line = candidate
+            else:
+                if not line:  # a single “word” too long; hard-break with ellipsis
+                    for i in range(len(w), 0, -1):
+                        if draw.textlength(w[:i] + "…", font=f) <= box_w:
+                            line = w[:i] + "…"
+                            break
+                lines.append(line)
+                h += line_h
+                line = w
+                if h + line_h > box_h:
+                    consumed_all_words = False
+                    break
+        if line and h + line_h <= box_h:
+            lines.append(line)
+            h += line_h
+        elif line:
+            consumed_all_words = False
 
-    lines = [[]]
-    words = text.split()
-    for word in words:
-        # try putting this word in last line then measure
-        lines[-1].append(word)
-        w, h = _dims(_composed())
-        if w > max_width:
-            moved = lines[-1].pop()
-            lines.append([moved])
-            w, h = _dims(_composed())
-            if h > max_height:
-                lines.pop()
-                lines[-1][-1] += '...'
-                while True:
-                    w, h = _dims(_composed())
-                    if w <= max_width or len(lines[-1]) == 1:
-                        break
-                    lines[-1].pop()
-                    lines[-1][-1] += '...'
-                break
-    return '\n'.join([' '.join(line) for line in lines])
+        if consumed_all_words and line:
+            consumed_all_words = idx == len(words) - 1
+
+        return lines, h, f, consumed_all_words
+
+    for pt in range(base_pt, max(9, base_pt - 40), -1):
+        lines, total_h, f, fully_fit = layout(pt)
+        if lines and total_h <= box_h:
+            return "\n".join(lines), f, fully_fit
+
+    lines, _, f, fully_fit = layout(max(9, base_pt - 40))
+    return "\n".join(lines), f, fully_fit
 
 
 # ----------------------------- macOS wallpaper -----------------------------
@@ -152,14 +177,14 @@ def set_wallpaper_macos_all(image_path: str):
 
 
 # ----------------------------- APOD API helpers -----------------------------
-def build_apod_url(api_key: str) -> str:
-    # thumbs=true provides a thumbnail when media_type is "video".
+def build_apod_url(api_key: str, date_override: Optional[str] = None) -> str:
     qs = urllib.parse.urlencode({
         "api_key": api_key,
         "thumbs": "true",
-        # date param omitted => today's APOD
+        **({"date": date_override} if date_override else {}),
     })
     return f"{API_BASE}?{qs}"
+
 
 
 def fetch_json(url: str, retries: int = 3, backoff: float = 1.5) -> Dict:
@@ -195,105 +220,188 @@ def pick_image_url(apod: Dict) -> Optional[str]:
     # media_type might be "video" (e.g., YouTube/Vimeo). With thumbs=true we get thumbnail_url.
     return apod.get("thumbnail_url") or apod.get("url")
 
+@lru_cache(maxsize=None)
+def _font_debug(p):  # optional: prints once per resolved path
+    print(f"[StarHop] Using font: {p}")
+    return p
+
+def _try_truetype(path: Path, size: int) -> ImageFont.FreeTypeFont | None:
+    try:
+        f = ImageFont.truetype(str(path), size)
+        _font_debug(str(path))
+        return f
+    except Exception:
+        return None
+
+def load_font_chain(size_px: int, names: list[str]):
+    """
+    Try a list of font *file basenames* across common locations:
+    - Bundled resources/fonts
+    - App Support override
+    Falls back to ImageFont.load_default().
+    """
+    here = Path(__file__).parent
+    fonts_pkg = here / "resources" / "fonts"
+    fonts_app = Path.home() / "Library/Application Support/com.krishengreenwell.StarHop/fonts"
+
+    search_dirs = [
+        fonts_pkg,
+        fonts_app,
+    ]
+    for name in names:
+        for d in search_dirs:
+            f = _try_truetype(d / name, size_px)
+            if f:
+                return f
+    from PIL import ImageFont
+    return ImageFont.load_default()
+
+
+def clean_text(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip())
+
+
+TITLE_FONT_CANDIDATES = [
+    "ArchivoBlack-Regular.ttf",
+    "NimbusSans-Bold.ttf",
+]
+
+TITLE_SIZE_FACTOR = 0.020
+
+BODY_FONT_CANDIDATES = [
+    "NimbusSansNarrow-Oblique.ttf",
+    "NimbusSansNarrow-Regular.ttf",
+]
+
+BODY_SIZE_FACTOR = 0.015
+BODY_LINE_GAP_PX = 4
+LANDSCAPE_BODY_WIDTH_FACTORS = [0.25, 0.30, 0.35, 0.40]
+PORTRAIT_BODY_WIDTH_FACTORS = [0.30, 0.36, 0.42, 0.48]
+
+
+def choose_body_layout(draw: ImageDraw.ImageDraw, bg: Image.Image, text: str,
+                       base_pt: int, line_gap_px: int,
+                       font_candidates: list[str]) -> tuple[str, "ImageFont.FreeTypeFont"]:
+    """
+    Try a few text-box widths and keep the narrowest one that preserves a
+    readable font size. This prevents long captions from collapsing into a thin
+    single-word column even on landscape images.
+    """
+    box_h = int(bg.height * 0.70)
+    aspect_ratio = bg.width / bg.height if bg.height else 1
+    width_factors = LANDSCAPE_BODY_WIDTH_FACTORS if aspect_ratio >= 1 else PORTRAIT_BODY_WIDTH_FACTORS
+
+    best_full_fit: tuple[str, "ImageFont.FreeTypeFont"] | None = None
+    best_partial_fit: tuple[str, "ImageFont.FreeTypeFont"] | None = None
+    for width_factor in width_factors:
+        box_w = int(bg.width * width_factor)
+        wrapped, font, fully_fit = wrap_to_box(
+            draw, text, base_pt, box_w, box_h,
+            line_gap_px=line_gap_px,
+            font_candidates=font_candidates,
+        )
+
+        candidate = (wrapped, font)
+        if fully_fit:
+            if getattr(font, "size", 0) >= max(12, base_pt - 2):
+                return candidate
+            if best_full_fit is None or getattr(font, "size", 0) > getattr(best_full_fit[1], "size", 0):
+                best_full_fit = candidate
+            continue
+
+        if best_partial_fit is None or getattr(font, "size", 0) > getattr(best_partial_fit[1], "size", 0):
+            best_partial_fit = candidate
+
+    if best_full_fit is not None:
+        return best_full_fit
+    assert best_partial_fit is not None
+    return best_partial_fit
 
 # ----------------------------- Main flow -----------------------------
 def main():
     import os, time
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] StarHop run start (pid={os.getpid()})")
 
-    parser = argparse.ArgumentParser(
-        description="Get today's APOD via NASA API and set as macOS wallpaper with caption."
-    )
-    parser.add_argument(
-        "--api-key",
-        dest="api_key",
-        default=None,  # no default → must resolve via env/file/flag
-        help="NASA API key (overrides env/file)"
-    )
-    parser.add_argument("--no-wallpaper", action="store_true",
-                        help="Skip setting macOS wallpaper; just save the captioned image")
+    parser = argparse.ArgumentParser(description="Get today's APOD …")
+    parser.add_argument("--api-key", dest="api_key", default=None)
+    parser.add_argument("--no-wallpaper", action="store_true")
+    parser.add_argument("--date", help="APOD date (YYYY-MM-DD)")
+    parser.add_argument("--image", help="Use a local image file instead of NASA API")
+    parser.add_argument("--title", default="(Test image)")
+    parser.add_argument("--text")
     args = parser.parse_args()
 
-    api_key = resolve_api_key(args.api_key)
+    tmp_path = None  # ensure defined for later cleanup
 
-    if api_key.upper() == "DEMO_KEY":
-        sys.exit("DEMO_KEY is not allowed. Please supply your personal NASA API key.")
+    if args.image:
+        # --- Local test mode (no network) ---
+        bg = Image.open(args.image).convert("RGB")
+        writing = ImageDraw.Draw(bg)
+        title = args.title or "(Test image)"
+        explanation = args.text or "(no description provided)"
+    else:
+        # --- Online mode only here ---
+        def _mask(k: str) -> str:
+            return f"{k[:4]}…{k[-4:]}" if len(k) >= 8 else "****"
 
-    # Redact the key in logs
-    def _mask(k: str) -> str:
-        return f"{k[:4]}…{k[-4:]}" if len(k) >= 8 else "****"
+        api_key = resolve_api_key(args.api_key)
+        if api_key.upper() == "DEMO_KEY":
+            sys.exit("DEMO_KEY is not allowed. Please supply your personal NASA API key.")
 
-    url = build_apod_url(api_key)
-    print(f"Fetching: {API_BASE}?api_key={_mask(api_key)}&thumbs=true")
-    apod = fetch_json(url)
+        url = build_apod_url(api_key, args.date)
+        print(f"Fetching: {API_BASE}?api_key={_mask(api_key)}&thumbs=true"
+              f"{('&date=' + args.date) if args.date else ''}")
+        apod = fetch_json(url)
 
-    # Basic fields per API
-    title = apod.get("title", "Astronomy Picture of the Day")
-    explanation = apod.get("explanation", "")
-    media_type = apod.get("media_type")
-    apod_date = apod.get("date")
+        title = apod.get("title", "Astronomy Picture of the Day")
+        explanation = apod.get("explanation", "")
+        media_type = apod.get("media_type")
+        apod_date = apod.get("date")
 
-    image_url = pick_image_url(apod)
-    if not image_url:
-        raise SystemExit(f"No downloadable image URL found for media_type={media_type!r} on {apod_date}.")
+        image_url = pick_image_url(apod)
+        if not image_url:
+            raise SystemExit(f"No downloadable image URL found for media_type={media_type!r} on {apod_date}.")
 
-    # Download image to temp file
-    with urllib.request.urlopen(image_url) as response:
-        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-            shutil.copyfileobj(response, tmp_file)
-            tmp_path = tmp_file.name
+        with urllib.request.urlopen(image_url) as response:
+            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                shutil.copyfileobj(response, tmp_file)
+                tmp_path = tmp_file.name
 
-    # Compose caption on image
-    bg = Image.open(tmp_path)
-    writing = ImageDraw.Draw(bg)
+        bg = Image.open(tmp_path).convert("RGB")
+        writing = ImageDraw.Draw(bg)
 
-    # Smaller factor = smaller text.
-    title_font_size_factor = 0.020
-    desc_font_size_factor = 0.015
-    title_font_size = int(bg.width * title_font_size_factor)
-    desc_font_size = int(bg.width * desc_font_size_factor)
+    title_pt = int(bg.width * TITLE_SIZE_FACTOR)
+    body_pt = int(bg.width * BODY_SIZE_FACTOR)
 
-    # Swap to a safe default font if missing
-    def _load_font(name: str, size: int, fallback: str = "Arial.ttf"):
-        try:
-            return ImageFont.truetype(name, size=size)
-        except Exception:
-            try:
-                return ImageFont.truetype(fallback, size=size)
-            except Exception:
-                return ImageFont.load_default()
-
-    title_font = _load_font("Arial Black.ttf", title_font_size)
-    desc_font = _load_font("Arial Narrow Italic.ttf", desc_font_size)
-
-    # The dimensions of the text box are a factor of the source image
-    explanation_wrapped = text_wrap(
-        explanation,
-        desc_font,
-        writing,
-        int(bg.width * 0.25),
-        int(bg.height * 0.7),
+    # Title: Archivo Black with Nimbus Bold fallback
+    title_font = load_font_chain(title_pt, TITLE_FONT_CANDIDATES)
+    # Body wrapping: prefer Nimbus Narrow body faces
+    wrapped, body_font = choose_body_layout(
+        writing, bg, explanation, body_pt,
+        line_gap_px=BODY_LINE_GAP_PX,
+        font_candidates=BODY_FONT_CANDIDATES,
     )
+    writing.text(
+        (int(bg.width*0.02), int(bg.height*0.05)),
+        title,
+        font=title_font,
+        fill=(255, 255, 255),
+    )
+    writing.multiline_text((int(bg.width*0.05), int(bg.height*0.11)), wrapped, font=body_font, spacing=BODY_LINE_GAP_PX)
 
-    # write title and explanation
-    writing.text((int(bg.width * 0.02), int(bg.height * 0.05)), title, font=title_font)
-
-    # The offset of the text box from the upper left corner is a factor of the source image dimensions
-    writing.text((int(bg.width * 0.05), int(bg.height * 0.11)), explanation_wrapped, font=desc_font)
-
-    # Save to ~/Pictures/StarHop/<today>.png
     os.makedirs(os.path.expanduser('~/Pictures/StarHop'), exist_ok=True)
-    today = date.today()
-    out_path = os.path.expanduser(f"~/Pictures/StarHop/{today}.png")
+    out_path = os.path.expanduser(f"~/Pictures/StarHop/{date.today()}{'-test' if args.image else ''}.png")
     bg.save(out_path)
+    print("Saved captioned image to:", out_path)
 
-    print('Saved captioned image to:', out_path)
+    if tmp_path:
+        try: os.unlink(tmp_path)
+        except Exception: pass
 
     if not args.no_wallpaper and sys.platform == "darwin":
         print('Setting the new desktop picture:', out_path)
-        set_wallpaper_macos_all(out_path)  # apply scaling/bg to current Space
-    elif not args.no_wallpaper:
-        print("Non-macOS platform detected; skipping wallpaper step.")
+        set_wallpaper_macos_all(out_path)
+
 
 
 if __name__ == "__main__":

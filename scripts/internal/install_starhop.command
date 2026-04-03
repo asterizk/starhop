@@ -90,6 +90,12 @@ mkdir -p "$LOG_DIR"
 cp -f "${SRC_STARHOP}" "${APP_SUPPORT}/starhop.py"
 cp -f "${REQ}" "${APP_SUPPORT}/requirements.txt"
 
+# Copy fonts (if present)
+if [ -d "${PAYLOAD_DIR}/fonts" ]; then
+  mkdir -p "${APP_SUPPORT}/fonts"
+  cp -f "${PAYLOAD_DIR}/fonts/"* "${APP_SUPPORT}/fonts/"
+fi
+
 # --- NASA API key (required) ---
 KEY_FILE="${APP_SUPPORT}/nasa_apod_key"
 
