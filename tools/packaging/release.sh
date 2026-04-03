@@ -60,6 +60,7 @@ need shasum
 
 DIST_DIR="dist/${VERSION}"
 mkdir -p "${DIST_DIR}"
+NOTES_FILE="${DIST_DIR}/github-release-notes.md"
 
 say "Step 1/4: Build apps (version ${VERSION})"
 VERSION="${VERSION}" BUNDLE_PREFIX="${BUNDLE_PREFIX}" ./tools/packaging/build_apps.sh
@@ -111,6 +112,38 @@ fi
 say "Step 4/4: (optional) GitHub Release"
 if [ ${DO_GH} -eq 1 ]; then
   if command -v gh >/dev/null 2>&1; then
+    say "Writing GitHub Release notes"
+    cat > "${NOTES_FILE}" <<EOF
+## Download
+
+Download \`$(basename "${DMG_PATH}")\` from the Assets section below.
+
+## What's Included
+
+- \`StarHop Install.app\`
+- \`StarHop Uninstall.app\`
+- SHA-256 checksum file(s) for verification
+
+## Install
+
+1. Open the DMG.
+2. Double-click \`StarHop Install.app\`.
+3. If prompted, install Python 3 from python.org and LaunchControl from soma-zone.com.
+4. Paste your NASA API key when the installer asks for it.
+5. After setup finishes, open LaunchControl if prompted so you can grant the required macOS permissions.
+
+## Uninstall
+
+Double-click \`StarHop Uninstall.app\` from the DMG, or keep a copy of it somewhere convenient for later.
+
+## Notes
+
+- This release is signed, notarized, and stapled for macOS distribution outside the Mac App Store.
+- If macOS shows a warning, make sure you downloaded the release asset from GitHub Releases rather than the repository source archive.
+- StarHop stores generated images in \`~/Pictures/StarHop/\`.
+- See the checksum file(s) in Assets if you want to verify the download.
+EOF
+
     say "Creating GitHub Release v${VERSION}"
     ARGS=()
     # Include DMG (+ checksum) if present
@@ -126,7 +159,7 @@ if [ ${DO_GH} -eq 1 ]; then
     fi
     gh release create "v${VERSION}" "${ARGS[@]}" \
       --title "StarHop ${VERSION}" \
-      --notes $'What’s included:\n• StarHop Install.app\n• StarHop Uninstall.app'
+      --notes-file "${NOTES_FILE}"
   else
     say "GitHub CLI not found; skipping release creation. (Install with 'brew install gh')"
   fi
