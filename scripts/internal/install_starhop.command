@@ -36,7 +36,6 @@ stop_progress() {
 }
 
 write_fdautil_guide() {
-  local helper_status="$1"
   GUIDE_PATH="${APP_SUPPORT}/Finish StarHop Setup.txt"
   cat > "${GUIDE_PATH}" <<EOF
 StarHop installed successfully.
@@ -49,26 +48,19 @@ To let wallpaper updates run unattended, finish LaunchControl setup for fdautil:
 4. Click Full Disk Access.
 5. When System Settings opens, turn on the toggle for fdautil.
 
-${helper_status}
-
 If wallpaper updates do not run unattended later, verify fdautil still has Full Disk Access enabled in System Settings.
 EOF
 }
 
 show_fdautil_finish() {
-  local helper_status="$1"
-  ICON_PATH="$ICON_PATH" HELPER_STATUS="$helper_status" GUIDE_PATH="$GUIDE_PATH" /usr/bin/osascript <<'OSA'
+  ICON_PATH="$ICON_PATH" GUIDE_PATH="$GUIDE_PATH" /usr/bin/osascript <<'OSA'
 set iconPath to system attribute "ICON_PATH"
-set helperStatus to system attribute "HELPER_STATUS"
 set guidePath to system attribute "GUIDE_PATH"
 set iconAlias to (POSIX file iconPath) as alias
 
 set dlg to display dialog "StarHop installed." & return & return & ¬
   "One more step is required so wallpaper updates can run unattended." & return & return & ¬
-  "Open the setup guide for the LaunchControl / fdautil steps." & return & return & ¬
-  helperStatus & return & return & ¬
-  "The guide is saved here for later:" & return & ¬
-  guidePath ¬
+  "Open the setup guide for the LaunchControl / fdautil steps." ¬
   buttons {"View Setup Guide"} default button "View Setup Guide" with icon iconAlias
 
 do shell script "open -a TextEdit " & quoted form of guidePath
@@ -235,14 +227,9 @@ else
   fi
 fi
 say_msg "Using fdautil at: ${FDAUTIL:-<not found>}"
-
-if [ -n "${FDAUTIL:-}" ]; then
-  FDAUTIL_STATUS="Detected existing fdautil helper at:
-${FDAUTIL}
-
-If wallpaper updates do not run unattended, verify fdautil still has Full Disk Access enabled in System Settings."
-else
-  FDAUTIL_STATUS="fdautil is not installed yet. In LaunchControl, go to Settings... -> Utilities -> fdautil, then click Install and Full Disk Access."
+if [ -z "${FDAUTIL:-}" ]; then
+  /usr/bin/osascript -e 'display dialog "LaunchControl is installed, but its helper app fdautil is not installed yet.\n\nOpen LaunchControl, go to Settings... -> Utilities -> fdautil, click Install, then run StarHop Install.app again." buttons {"OK"} default button 1 with icon note'
+  exit 1
 fi
 
 # Show progress window for the long-running install phase
@@ -280,19 +267,10 @@ cp -f "${SRC_PLIST}" "${DST_PLIST}"
 
 /usr/libexec/PlistBuddy -c 'Delete :ProgramArguments' "$DST_PLIST" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c 'Add :ProgramArguments array' "$DST_PLIST"
-
-if [ -n "${FDAUTIL:-}" ]; then
-  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:0 string ${FDAUTIL}" "$DST_PLIST"
-  /usr/libexec/PlistBuddy -c 'Add :ProgramArguments:1 string exec' "$DST_PLIST"
-  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:2 string ${PYTHON_BIN}" "$DST_PLIST"
-  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:3 string ${APP_SUPPORT}/starhop.py" "$DST_PLIST"
-else
-  # no fdautil --> run directly
-  /usr/libexec/PlistBuddy -c 'Add :ProgramArguments:0 string /usr/bin/arch' "$DST_PLIST"
-  /usr/libexec/PlistBuddy -c 'Add :ProgramArguments:1 string -arm64' "$DST_PLIST"
-  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:2 string ${PYTHON_BIN}" "$DST_PLIST"
-  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:3 string ${APP_SUPPORT}/starhop.py" "$DST_PLIST"
-fi
+/usr/libexec/PlistBuddy -c "Add :ProgramArguments:0 string ${FDAUTIL}" "$DST_PLIST"
+/usr/libexec/PlistBuddy -c 'Add :ProgramArguments:1 string exec' "$DST_PLIST"
+/usr/libexec/PlistBuddy -c "Add :ProgramArguments:2 string ${PYTHON_BIN}" "$DST_PLIST"
+/usr/libexec/PlistBuddy -c "Add :ProgramArguments:3 string ${APP_SUPPORT}/starhop.py" "$DST_PLIST"
 
 # WorkingDirectory
 /usr/libexec/PlistBuddy -c "Set :WorkingDirectory ${APP_SUPPORT}" "$DST_PLIST" 2>/dev/null || \
@@ -329,7 +307,7 @@ say_msg "StarHop run finished with status: ${APP_RC}"
 stop_progress
 trap - EXIT INT TERM   # clear trap if you want
 
-write_fdautil_guide "${FDAUTIL_STATUS}"
-show_fdautil_finish "${FDAUTIL_STATUS}"
+write_fdautil_guide
+show_fdautil_finish
 
 exit $APP_RC
