@@ -110,7 +110,7 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] ===== ${SCRIPT_NAME} END (exit=${EXIT_CODE}
 ICON_CAND="$APP_ROOT/Contents/Resources/AppIcon.icns"
 [ -f "$ICON_CAND" ] || ICON_CAND="$APP_ROOT"  # fallback to bundle
 
-if [ "$EXIT_CODE" -ne 0 ] && [ "$EXIT_CODE" -ne 2 ]; then
+if [ "$EXIT_CODE" -ne 0 ] && [ "$EXIT_CODE" -ne 1 ] && [ "$EXIT_CODE" -ne 2 ]; then
   # Not using macOS notifications here because they require enabling from Script Editor which is a step too far
   # (too annoying) to ask of the user.
   # See https://forum.latenightsw.com/t/trying-to-use-terminal-for-display-notification/5068
