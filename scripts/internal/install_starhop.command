@@ -64,23 +64,14 @@ set guidePath to system attribute "GUIDE_PATH"
 set iconAlias to (POSIX file iconPath) as alias
 
 set dlg to display dialog "StarHop installed." & return & return & ¬
-  "Next, finish LaunchControl setup for fdautil:" & return & return & ¬
-  "1. Open LaunchControl" & return & ¬
-  "2. Go to Settings... -> Utilities -> fdautil" & return & ¬
-  "3. Click Install" & return & ¬
-  "4. Click Full Disk Access" & return & ¬
-  "5. In System Settings, turn on the toggle for fdautil" & return & return & ¬
+  "One more step is required so wallpaper updates can run unattended." & return & return & ¬
+  "Open the setup guide for the LaunchControl / fdautil steps." & return & return & ¬
   helperStatus & return & return & ¬
-  "You can reopen these instructions later in:" & return & ¬
+  "The guide is saved here for later:" & return & ¬
   guidePath ¬
-  buttons {"OK","View Setup Guide","Open LaunchControl"} default button "Open LaunchControl" with icon iconAlias
+  buttons {"View Setup Guide"} default button "View Setup Guide" with icon iconAlias
 
-set chosenButton to button returned of dlg
-if chosenButton is "View Setup Guide" then
-  do shell script "open -a TextEdit " & quoted form of guidePath
-else if chosenButton is "Open LaunchControl" then
-  do shell script "open -a LaunchControl"
-end if
+do shell script "open -a TextEdit " & quoted form of guidePath
 OSA
 }
 
