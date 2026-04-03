@@ -48,7 +48,7 @@ fi
 
 # 3) Remove installed application support (includes .venv and copied sources)
 if [ -d "${APP_SUPPORT}" ]; then
-  say "Removing ${APP_SUPPORT}"
+  say_msg "Removing ${APP_SUPPORT}"
   rm -rf "${APP_SUPPORT}" || true
   summary+=("Application Support folder removed")
 fi
