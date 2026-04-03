@@ -8,6 +8,7 @@ Sets your Mac's desktop to the current [NASA Astronomy Photo of the Day](https:/
 
 ## Requirements
 
+- **Apple Silicon Mac** running **macOS 13+**
 - **Python 3.9+** (3.11+ recommended)
 - **LaunchControl** (required to manage the LaunchAgent and use **fdautil** for permissions assistance; installation is 
 free — registration/purchase is **not** required)
@@ -25,13 +26,18 @@ free — registration/purchase is **not** required)
 ## Quick Start (macOS)
 
 ### 🖱️ Double-click install
-1. Download or clone this project.
-2. Double-click **StarHop Install.app**.
+1. Download the latest DMG from [GitHub Releases](https://github.com/asterizk/starhop/releases).
+2. Open the DMG.
+3. Double-click **StarHop Install.app**.
    - If Python 3 isn’t installed, a browser window will open to python.org.
    - If LaunchControl isn’t installed, you’ll be guided to install it.
    - On first run, a private Python environment (`.venv`) is created automatically and required packages are installed.
    - The LaunchAgent is auto-configured and loaded so the wallpaper updates run automatically.
    - A dialog will guide you to grant permissions via **LaunchControl → fdautil** (cannot be auto-granted).
+
+### Apple Silicon only
+
+StarHop currently supports **Apple Silicon Macs only**. Intel Macs are not supported by the packaged installer.
 
 ---
 
@@ -46,7 +52,7 @@ free — registration/purchase is **not** required)
 
 # Notes
  - Captioned APOD images can be found at `~/Pictures/StarHop/`
- - A work in progress! If something doesn't look right, please [browse the existing issues](https://github.com/asterizk/starhop/issues) or [file a new one](https://github.com/asterizk/starhop/issues/new)
+ - If something doesn't look right, please [browse the existing issues](https://github.com/asterizk/starhop/issues) or [file a new one](https://github.com/asterizk/starhop/issues/new)
 
 # TODO
  - Create a lighter region under textbox to make it more readable in event of a busy background

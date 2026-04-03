@@ -118,6 +118,11 @@ if [ ${DO_GH} -eq 1 ]; then
 
 Download \`$(basename "${DMG_PATH}")\` from the Assets section below.
 
+## Compatibility
+
+- Apple Silicon only
+- macOS 13 or later
+
 ## What's Included
 
 - \`StarHop Install.app\`
