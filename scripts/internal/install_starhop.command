@@ -35,27 +35,32 @@ stop_progress() {
   unset PROGRESS_PID
 }
 
-show_fdautil_prep() {
+write_fdautil_guide() {
   local helper_status="$1"
-  ICON_PATH="$ICON_PATH" HELPER_STATUS="$helper_status" /usr/bin/osascript <<'OSA'
-set iconPath to system attribute "ICON_PATH"
-set helperStatus to system attribute "HELPER_STATUS"
-set iconAlias to (POSIX file iconPath) as alias
+  GUIDE_PATH="${APP_SUPPORT}/Finish StarHop Setup.txt"
+  cat > "${GUIDE_PATH}" <<EOF
+StarHop installed successfully.
 
-display dialog "StarHop uses LaunchControl's helper app fdautil so wallpaper updates can run unattended." & return & return & ¬
-  helperStatus & return & return & ¬
-  "After installation finishes, StarHop can open LaunchControl for you." & return & ¬
-  "In LaunchControl, go to Settings... -> Utilities -> fdautil." & return & ¬
-  "Click Install, then click Full Disk Access. When System Settings opens, turn on the toggle for fdautil." ¬
-  buttons {"Continue"} default button "Continue" with icon iconAlias
-OSA
+To let wallpaper updates run unattended, finish LaunchControl setup for fdautil:
+
+1. Open LaunchControl.
+2. Go to Settings... -> Utilities -> fdautil.
+3. Click Install.
+4. Click Full Disk Access.
+5. When System Settings opens, turn on the toggle for fdautil.
+
+${helper_status}
+
+If wallpaper updates do not run unattended later, verify fdautil still has Full Disk Access enabled in System Settings.
+EOF
 }
 
 show_fdautil_finish() {
   local helper_status="$1"
-  ICON_PATH="$ICON_PATH" HELPER_STATUS="$helper_status" /usr/bin/osascript <<'OSA'
+  ICON_PATH="$ICON_PATH" HELPER_STATUS="$helper_status" GUIDE_PATH="$GUIDE_PATH" /usr/bin/osascript <<'OSA'
 set iconPath to system attribute "ICON_PATH"
 set helperStatus to system attribute "HELPER_STATUS"
+set guidePath to system attribute "GUIDE_PATH"
 set iconAlias to (POSIX file iconPath) as alias
 
 set dlg to display dialog "StarHop installed." & return & return & ¬
@@ -65,10 +70,15 @@ set dlg to display dialog "StarHop installed." & return & return & ¬
   "3. Click Install" & return & ¬
   "4. Click Full Disk Access" & return & ¬
   "5. In System Settings, turn on the toggle for fdautil" & return & return & ¬
-  helperStatus ¬
-  buttons {"Not Now","Open LaunchControl"} default button "Open LaunchControl" with icon iconAlias
+  helperStatus & return & return & ¬
+  "You can reopen these instructions later in:" & return & ¬
+  guidePath ¬
+  buttons {"OK","View Setup Guide","Open LaunchControl"} default button "Open LaunchControl" with icon iconAlias
 
-if button returned of dlg is "Open LaunchControl" then
+set chosenButton to button returned of dlg
+if chosenButton is "View Setup Guide" then
+  do shell script "open -a TextEdit " & quoted form of guidePath
+else if chosenButton is "Open LaunchControl" then
   do shell script "open -a LaunchControl"
 end if
 OSA
@@ -243,7 +253,6 @@ If wallpaper updates do not run unattended, verify fdautil still has Full Disk A
 else
   FDAUTIL_STATUS="fdautil is not installed yet. In LaunchControl, go to Settings... -> Utilities -> fdautil, then click Install and Full Disk Access."
 fi
-show_fdautil_prep "${FDAUTIL_STATUS}"
 
 # Show progress window for the long-running install phase
 start_progress
@@ -329,6 +338,7 @@ say_msg "StarHop run finished with status: ${APP_RC}"
 stop_progress
 trap - EXIT INT TERM   # clear trap if you want
 
+write_fdautil_guide "${FDAUTIL_STATUS}"
 show_fdautil_finish "${FDAUTIL_STATUS}"
 
 exit $APP_RC
