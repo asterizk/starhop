@@ -9,7 +9,8 @@ Sets your Mac's desktop to the current [NASA Astronomy Photo of the Day](https:/
 ## Requirements
 
 - **Apple Silicon Mac** running **macOS 13+**
-- **Python 3.9+** (3.11+ recommended)
+- **Python 3.9+**
+  If it is missing, StarHop will guide you to install it during setup.
 - **LaunchControl** (required to manage the LaunchAgent and use **fdautil** for permissions assistance; installation is 
 free — registration/purchase is **not** required)
 
@@ -30,7 +31,7 @@ free — registration/purchase is **not** required)
 2. Open the DMG.
 3. Double-click **StarHop Install.app**.
 4. Enter your NASA API key when prompted.
-5. If needed, StarHop will set up Python automatically.
+5. If Python 3 is missing, StarHop will guide you to install it first.
 6. If needed, install LaunchControl. Its free trial is sufficient; you do not need to buy or register it.
 7. Follow the setup guide that StarHop opens to finish the LaunchControl / `fdautil` permissions.
 
