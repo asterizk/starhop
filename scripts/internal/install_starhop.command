@@ -154,11 +154,11 @@ set iconAlias to (POSIX file iconPath) as alias
 repeat
   set dlg to display dialog ¬
     "StarHop needs a NASA API Key to operate." & return & return & ¬
-    "Click “Open Site” to create one, then paste it here." ¬
-    default answer "" buttons {"Cancel", "Open Site", "Continue"} ¬
+    "Click “Create Key” to create one, then paste it here." ¬
+    default answer "" buttons {"Cancel", "Create Key", "Continue"} ¬
     default button "Continue" with icon iconAlias
   set btn to button returned of dlg
-  if btn is "Open Site" then
+  if btn is "Create Key" then
     try
       do shell script "open " & quoted form of theURL
     end try
