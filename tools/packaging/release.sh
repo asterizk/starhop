@@ -133,14 +133,17 @@ Download \`$(basename "${DMG_PATH}")\` from the Assets section below.
 
 1. Open the DMG.
 2. Double-click \`StarHop Install.app\`.
-3. StarHop asks for your NASA API key early in setup, before Python is installed.
-4. If Python 3 is not already available, the installer will set it up for you automatically.
-5. If LaunchControl is not installed, you'll be guided to install it. LaunchControl's free trial is sufficient for StarHop; you do not need to buy or register it.
-6. During first-time setup, macOS may show permission prompts for LaunchControl, \`bash\`, or System Events. This is expected.
-7. If macOS says \`"bash" was prevented from modifying apps on your Mac\`, click Allow. If you skip it, macOS may later ask for your username and password to approve the same change.
-8. If macOS shows a Background Items Added notice for LaunchControl, open its options and allow LaunchControl to run in the background.
-9. If LaunchControl says its helper tool needs approval to update the \`fdautil\` configuration, approve the LaunchControl background-item permission and try again.
-10. If the StarHop job in LaunchControl does not settle down after you approve the prompts, log out and back in once, then check again.
+3. Enter your NASA API key when prompted.
+4. If needed, StarHop will set up Python automatically.
+5. If needed, install LaunchControl. Its free trial is sufficient; you do not need to buy or register it.
+6. Follow the setup guide that StarHop opens to finish the LaunchControl / \`fdautil\` permissions.
+
+## If macOS Asks
+
+- Allow prompts for LaunchControl, \`bash\`, or System Events.
+- If macOS says \`"bash" was prevented from modifying apps on your Mac\`, click Allow.
+- If macOS shows a Background Items Added notice for LaunchControl, open its options and allow LaunchControl to run in the background.
+- If the StarHop job in LaunchControl still does not settle down after you approve the prompts, log out and back in once, then check again.
 
 ## Uninstall
 
