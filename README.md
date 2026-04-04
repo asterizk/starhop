@@ -51,7 +51,7 @@ StarHop currently supports **Apple Silicon Macs only**. Intel Macs are not suppo
 
 1. Double-click **StarHop Uninstall.app**.
    - Unloads and removes the LaunchAgent (if loaded).
-   - Always removes the local `.venv` environment.
+   - Removes StarHop's installed files from Application Support.
    - Leaves your project folder intact.
 
 ---
