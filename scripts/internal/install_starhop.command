@@ -40,7 +40,7 @@ write_fdautil_guide() {
   cat > "${GUIDE_PATH}" <<EOF
 StarHop installed successfully.
 
-To let wallpaper updates run unattended, finish LaunchControl setup for fdautil:
+Finish LaunchControl setup for fdautil:
 
 1. Open LaunchControl.
 2. Go to Settings... -> Utilities -> fdautil.
@@ -48,13 +48,12 @@ To let wallpaper updates run unattended, finish LaunchControl setup for fdautil:
 4. Click Full Disk Access.
 5. When System Settings opens, turn on the toggle for fdautil.
 
-During first-time setup, macOS may show permission prompts for LaunchControl, bash, or System Events. This is expected.
-If macOS says "bash" was prevented from modifying apps on your Mac, click Allow. If you skip it, macOS may later ask for your username and password to approve the same change.
-If macOS shows a Background Items Added notice for LaunchControl, open its options and allow LaunchControl to run in the background.
-If LaunchControl says its helper tool needs approval to update the fdautil configuration, approve the LaunchControl background-item permission and try again.
+If macOS asks:
+- Allow prompts for LaunchControl, bash, or System Events.
+- If macOS says "bash" was prevented from modifying apps on your Mac, click Allow.
+- If macOS shows a Background Items Added notice for LaunchControl, allow LaunchControl to run in the background.
 
-If wallpaper updates do not run unattended later, verify fdautil still has Full Disk Access enabled in System Settings.
-If the StarHop job initially shows an error in LaunchControl, complete any pending prompts and try again after logging out and back in.
+If the StarHop job in LaunchControl does not settle down after you approve the prompts, log out and back in once, then check again.
 EOF
 }
 

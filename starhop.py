@@ -274,7 +274,7 @@ BODY_FONT_CANDIDATES = [
 ]
 
 BODY_SIZE_FACTOR = 0.015
-BODY_LINE_GAP_PX = 10
+BODY_LINE_GAP_FACTOR = 0.3
 LANDSCAPE_BODY_WIDTH_FACTORS = [0.25, 0.30, 0.35, 0.40]
 PORTRAIT_BODY_WIDTH_FACTORS = [0.30, 0.36, 0.42, 0.48]
 
@@ -372,13 +372,14 @@ def main():
 
     title_pt = int(bg.width * TITLE_SIZE_FACTOR)
     body_pt = int(bg.width * BODY_SIZE_FACTOR)
+    body_line_gap_px = max(4, int(body_pt * BODY_LINE_GAP_FACTOR))
 
     # Title: Archivo Black with Nimbus Bold fallback
     title_font = load_font_chain(title_pt, TITLE_FONT_CANDIDATES)
     # Body wrapping: prefer Nimbus Narrow body faces
     wrapped, body_font = choose_body_layout(
         writing, bg, explanation, body_pt,
-        line_gap_px=BODY_LINE_GAP_PX,
+        line_gap_px=body_line_gap_px,
         font_candidates=BODY_FONT_CANDIDATES,
     )
     writing.text(
@@ -387,7 +388,7 @@ def main():
         font=title_font,
         fill=(255, 255, 255),
     )
-    writing.multiline_text((int(bg.width*0.05), int(bg.height*0.11)), wrapped, font=body_font, spacing=BODY_LINE_GAP_PX)
+    writing.multiline_text((int(bg.width*0.05), int(bg.height*0.11)), wrapped, font=body_font, spacing=body_line_gap_px)
 
     os.makedirs(os.path.expanduser('~/Pictures/StarHop'), exist_ok=True)
     out_path = os.path.expanduser(f"~/Pictures/StarHop/{date.today()}{'-test' if args.image else ''}.png")
