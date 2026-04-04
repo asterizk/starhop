@@ -29,11 +29,18 @@ free — registration/purchase is **not** required)
 1. Download the latest DMG from [GitHub Releases](https://github.com/asterizk/starhop/releases).
 2. Open the DMG.
 3. Double-click **StarHop Install.app**.
-   - If Python 3 isn’t installed, a browser window will open to python.org.
+   - StarHop asks for your NASA API key early in setup, before Python is installed.
+   - If Python 3 is not already available, the installer will set it up for you automatically.
    - If LaunchControl isn’t installed, you’ll be guided to install it.
+   - LaunchControl’s free trial is sufficient for StarHop; you do not need to buy or register it.
    - On first run, a private Python environment (`.venv`) is created automatically and required packages are installed.
    - The LaunchAgent is auto-configured and loaded so the wallpaper updates run automatically.
    - A dialog will guide you to grant permissions via **LaunchControl → fdautil** (cannot be auto-granted).
+   - During first-time setup, macOS may show permission prompts for **LaunchControl**, `bash`, or **System Events**. This is expected.
+   - If macOS says `"bash" was prevented from modifying apps on your Mac`, click **Allow**. If you skip it, macOS may later ask for your username and password to approve the same change.
+   - If macOS shows a **Background Items Added** notice for LaunchControl, open its options and allow LaunchControl to run in the background.
+   - If LaunchControl says its helper tool needs approval to update the `fdautil` configuration, approve the LaunchControl background-item permission and try again.
+   - If the StarHop job in LaunchControl does not settle down after you approve the prompts, log out and back in once, then check again.
 
 ### Apple Silicon only
 
