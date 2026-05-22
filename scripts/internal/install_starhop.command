@@ -248,6 +248,13 @@ trap 'stop_progress' EXIT INT TERM
 
 # --- venv (lives in Application Support) ---
 cd "${APP_SUPPORT}"
+if [ -d ".venv" ] && [ -x ".venv/bin/python" ]; then
+  EXISTING_ARCH="$(.venv/bin/python -c 'import platform; print(platform.machine())' 2>/dev/null || echo unknown)"
+  if [ "$EXISTING_ARCH" != "arm64" ]; then
+    say_msg "Existing venv is $EXISTING_ARCH — removing and rebuilding with arm64 Python..."
+    rm -rf .venv
+  fi
+fi
 if [ ! -d ".venv" ]; then
   say_msg "Creating virtual environment (.venv)..."
   "$PYTHON_SYS" -m venv .venv
