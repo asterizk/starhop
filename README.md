@@ -46,6 +46,10 @@ free — registration/purchase is **not** required)
 
 StarHop currently supports **Apple Silicon Macs only**. Intel Macs are not supported by the packaged installer.
 
+**If StarHop stopped working after a macOS warning about Intel-based apps:**
+1. Install the Apple Silicon version of Python from [python.org](https://www.python.org/downloads/macos/).
+2. Re-run **StarHop Install.app**. The installer will detect the old Intel Python environment and rebuild it automatically.
+
 ---
 
 ## Uninstall
