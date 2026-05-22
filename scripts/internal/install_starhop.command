@@ -204,6 +204,13 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 PYTHON_SYS="$(command -v python3)"
 say_msg "Using system Python: $PYTHON_SYS"
+PYTHON_ARCH="$("$PYTHON_SYS" -c 'import platform; print(platform.machine())')"
+if [ "$PYTHON_ARCH" != "arm64" ]; then
+  say_msg "ERROR: Python is $PYTHON_ARCH, not arm64. Please install the Apple Silicon version."
+  /usr/bin/osascript -e 'display dialog "The detected Python is Intel-based ('"$PYTHON_ARCH"'). Please install the Apple Silicon version from python.org, then run again." buttons {"OK"} default button 1 with icon caution'
+  exit 1
+fi
+say_msg "Python architecture: $PYTHON_ARCH"
 
 # --- LaunchControl / fdautil ---
 LC_APP="/Applications/LaunchControl.app"
