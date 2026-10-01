@@ -21,9 +21,8 @@ import sys
 import tempfile
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
-from datetime import date
+from datetime import date, datetime
 from typing import Dict, Optional
 
 # --- font loader (with a clear search path + one-time debug print) ---
@@ -35,7 +34,7 @@ from PIL import Image, ImageFont, ImageDraw  # pip install pillow
 if sys.version_info < (3, 9):
     sys.exit("This app needs Python 3.9 or newer. Please install Python 3 from python.org.")
 
-API_BASE = "https://api.nasa.gov/planetary/apod"
+API_BASE = "https://science.nasa.gov/wp-json/wp/v2/apod-basic"
 KEY_FILE = os.path.expanduser("~/Library/Application Support/com.krishengreenwell.StarHop/nasa_apod_key")
 
 def resolve_api_key(cli_value: Optional[str]) -> str:
@@ -177,13 +176,15 @@ def set_wallpaper_macos_all(image_path: str):
 
 
 # ----------------------------- APOD API helpers -----------------------------
-def build_apod_url(api_key: str, date_override: Optional[str] = None) -> str:
-    qs = urllib.parse.urlencode({
-        "api_key": api_key,
-        "thumbs": "true",
-        **({"date": date_override} if date_override else {}),
-    })
-    return f"{API_BASE}?{qs}"
+def build_apod_url(date_override: Optional[str] = None) -> str:
+    # The endpoint ignores ?date=; a specific day is requested as /YYMMDD.
+    if date_override:
+        try:
+            day = datetime.strptime(date_override, "%Y-%m-%d")
+        except ValueError:
+            sys.exit(f"Invalid --date {date_override!r}; expected YYYY-MM-DD.")
+        return f"{API_BASE}/{day:%y%m%d}"
+    return f"{API_BASE}?per_page=1"
 
 
 
@@ -348,10 +349,13 @@ def main():
         if api_key.upper() == "DEMO_KEY":
             sys.exit("DEMO_KEY is not allowed. Please supply your personal NASA API key.")
 
-        url = build_apod_url(api_key, args.date)
-        print(f"Fetching: {API_BASE}?api_key={_mask(api_key)}&thumbs=true"
-              f"{('&date=' + args.date) if args.date else ''}")
+        url = build_apod_url(args.date)
+        print(f"Fetching: {url}")
         apod = fetch_json(url)
+        if isinstance(apod, list):  # ?per_page=1 returns a one-item list
+            if not apod:
+                raise SystemExit("APOD endpoint returned no entries.")
+            apod = apod[0]
 
         title = apod.get("title", "Astronomy Picture of the Day")
         explanation = apod.get("explanation", "")
@@ -410,6 +414,8 @@ if __name__ == "__main__":
         main()
     except urllib.error.HTTPError as e:
         # Friendlier errors for common API issues
+        if e.code == 404:
+            sys.exit("HTTP 404: There's no APOD for that date.")
         if e.code == 403:
             sys.exit("HTTP 403: Check your API key (quota or invalid key).")
         if e.code == 429:
