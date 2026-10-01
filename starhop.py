@@ -3,8 +3,8 @@
 StarHop overlays today's NASA APOD image + explanation (or video thumbnail when needed).
 
 Usage examples:
-  NASA_APOD_KEY=YOURKEY python3 starhop.py
-  python3 starhop.py --api-key YOURKEY
+  python3 starhop.py
+  python3 starhop.py --date 2020-01-01
 
 This preserves your captioning + macOS wallpaper behavior from the old script.
 """
@@ -37,33 +37,6 @@ if sys.version_info < (3, 9):
     sys.exit("This app needs Python 3.9 or newer. Please install Python 3 from python.org.")
 
 API_BASE = "https://science.nasa.gov/wp-json/wp/v2/apod-basic"
-KEY_FILE = os.path.expanduser("~/Library/Application Support/com.krishengreenwell.StarHop/nasa_apod_key")
-
-def resolve_api_key(cli_value: Optional[str]) -> str:
-    # 1) CLI flag wins if provided
-    key = (cli_value or "").strip()
-    if key:
-        return key
-
-    # 2) Environment
-    key = os.environ.get("NASA_APOD_KEY", "").strip()
-    if key:
-        return key
-
-    # 3) Key file from installer
-    try:
-        with open(KEY_FILE, "r", encoding="utf-8") as fh:
-            key = fh.read().strip()
-            if key:
-                return key
-    except FileNotFoundError:
-        pass
-
-    # No key found → fail fast with guidance
-    sys.exit(
-        "NASA API key is required. Re-run the installer to save your key, "
-        "or pass --api-key/ NASA_APOD_KEY."
-    )
 
 # ----------------------------- Text wrapping -----------------------------
 # Given a font, wrap text into a given set of dimensions
@@ -357,7 +330,6 @@ def main():
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] StarHop run start (pid={os.getpid()})")
 
     parser = argparse.ArgumentParser(description="Get today's APOD …")
-    parser.add_argument("--api-key", dest="api_key", default=None)
     parser.add_argument("--no-wallpaper", action="store_true")
     parser.add_argument("--date", help="APOD date (YYYY-MM-DD)")
     parser.add_argument("--image", help="Use a local image file instead of NASA API")
@@ -375,13 +347,6 @@ def main():
         explanation = args.text or "(no description provided)"
     else:
         # --- Online mode only here ---
-        def _mask(k: str) -> str:
-            return f"{k[:4]}…{k[-4:]}" if len(k) >= 8 else "****"
-
-        api_key = resolve_api_key(args.api_key)
-        if api_key.upper() == "DEMO_KEY":
-            sys.exit("DEMO_KEY is not allowed. Please supply your personal NASA API key.")
-
         url = build_apod_url(args.date)
         print(f"Fetching: {url}")
         apod = fetch_json(url)
@@ -450,7 +415,7 @@ if __name__ == "__main__":
         if e.code == 404:
             sys.exit("HTTP 404: There's no APOD for that date.")
         if e.code == 403:
-            sys.exit("HTTP 403: Check your API key (quota or invalid key).")
+            sys.exit("HTTP 403: The APOD server refused the request. Try again later.")
         if e.code == 429:
-            sys.exit("HTTP 429: Rate limited. Try again later or use your own API key.")
+            sys.exit("HTTP 429: Rate limited. Try again later.")
         raise

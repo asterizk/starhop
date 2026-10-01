@@ -133,66 +133,14 @@ if [ -d "${PAYLOAD_DIR}/fonts" ]; then
   cp -f "${PAYLOAD_DIR}/fonts/"* "${APP_SUPPORT}/fonts/"
 fi
 
-# --- NASA API key (required) ---
-KEY_FILE="${APP_SUPPORT}/nasa_apod_key"
+# Older versions stored a NASA API key here; the APOD endpoint no longer needs one.
+rm -f "${APP_SUPPORT}/nasa_apod_key"
 
 # Resolve app icon
 ICON_NAME="$(/usr/bin/defaults read "$APP_BUNDLE/Contents/Info" CFBundleIconFile 2>/dev/null || echo AppIcon)"
 [[ "$ICON_NAME" != *.icns ]] && ICON_NAME="${ICON_NAME}.icns"
 ICON_PATH="$APP_BUNDLE/Contents/Resources/$ICON_NAME"
 [[ -f "$ICON_PATH" ]] || ICON_PATH="$APP_BUNDLE"   # fallback to bundle as icon
-
-if [ ! -f "$KEY_FILE" ]; then
-  say_msg "Prompting user for NASA API key..."
-
-  NASA_KEY=$(ICON_PATH="$ICON_PATH" NASA_URL="https://api.nasa.gov/index.html" /usr/bin/osascript <<'APPLESCRIPT'
-set iconPath to system attribute "ICON_PATH"
-set theURL   to system attribute "NASA_URL"
-set iconAlias to (POSIX file iconPath) as alias
-
-repeat
-  set dlg to display dialog ¬
-    "StarHop needs a NASA API Key to operate." & return & return & ¬
-    "Click “Create Key” to create one, then paste it here." ¬
-    default answer "" buttons {"Cancel", "Create Key", "Continue"} ¬
-    default button "Continue" with icon iconAlias
-  set btn to button returned of dlg
-  if btn is "Create Key" then
-    try
-      do shell script "open " & quoted form of theURL
-    end try
-  else if btn is "Cancel" then
-    error number -128
-  else
-    set theKey to text returned of dlg
-    if theKey is not "" and theKey is not "DEMO_KEY" then return theKey
-    display dialog "Please paste your real NASA API key (not DEMO_KEY)." ¬
-      buttons {"OK"} default button 1 with icon iconAlias
-  end if
-end repeat
-APPLESCRIPT
-  ) || true
-
-  NASA_KEY="$(printf '%s' "${NASA_KEY:-}" | tr -d '\r\n' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')"
-  if [ -z "${NASA_KEY}" ]; then
-    say_msg "No NASA API key provided; aborting install."
-    /usr/bin/osascript -e 'display dialog "Installation aborted: a NASA API key is required." buttons {"OK"} default button 1 with icon stop'
-    exit 2
-  fi
-
-  umask 077
-  printf '%s\n' "$NASA_KEY" > "$KEY_FILE"
-  chmod 600 "$KEY_FILE"
-
-  say_msg "Validating NASA API key..."
-  if ! curl -fsS "https://api.nasa.gov/planetary/apod?api_key=$(cat "$KEY_FILE")&date=2020-01-01&thumbs=true" >/dev/null; then
-    say_msg "Key validation failed."
-    /usr/bin/osascript -e 'display dialog "That NASA API key didn’t validate.\n\nOpen the NASA site, create a key, then run the installer again." buttons {"OK"} default button 1 with icon stop'
-    rm "$KEY_FILE"
-    exit 2
-  fi
-  say_msg "NASA API key validated."
-fi
 
 # --- Python 3 ---
 say_msg "Checking for Python 3..."

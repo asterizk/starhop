@@ -30,10 +30,9 @@ free — registration/purchase is **not** required)
 1. Download the latest DMG from [GitHub Releases](https://github.com/asterizk/starhop/releases).
 2. Open the DMG.
 3. Double-click **StarHop Install.app**.
-4. Enter your NASA API key when prompted.
-5. If Python 3 is missing, StarHop will guide you to install it first.
-6. If needed, install LaunchControl. Its free trial is sufficient; you do not need to buy or register it.
-7. Follow the setup guide that StarHop opens to finish the LaunchControl / `fdautil` permissions.
+4. If Python 3 is missing, StarHop will guide you to install it first.
+5. If needed, install LaunchControl. Its free trial is sufficient; you do not need to buy or register it.
+6. Follow the setup guide that StarHop opens to finish the LaunchControl / `fdautil` permissions.
 
 ### If macOS asks
 
