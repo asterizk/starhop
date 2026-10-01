@@ -37,6 +37,10 @@ if sys.version_info < (3, 9):
     sys.exit("This app needs Python 3.9 or newer. Please install Python 3 from python.org.")
 
 API_BASE = "https://science.nasa.gov/wp-json/wp/v2/apod-basic"
+# Downscale originals so the longest side fits a 5K display (some exceed 8000x11000).
+MAX_IMAGE_SIDE = 5120
+# Pillow warns above ~89 MP and refuses above ~179 MP; APOD originals have reached 92 MP.
+Image.MAX_IMAGE_PIXELS = 400_000_000
 
 # ----------------------------- Text wrapping -----------------------------
 # Given a font, wrap text into a given set of dimensions
@@ -189,12 +193,46 @@ def fetch_json(url: str, retries: int = 3, backoff: float = 1.5) -> Dict:
     assert False, "unreachable"
 
 
-def pick_image_url(apod: Dict) -> Optional[str]:
-    # Prefer HD image, then standard image, then video thumbnail (if present)
-    if apod.get("media_type") == "image":
-        return apod.get("hdurl") or apod.get("url")
-    # media_type might be "video" (e.g., YouTube/Vimeo). With thumbs=true we get thumbnail_url.
-    return apod.get("thumbnail_url") or apod.get("url")
+def image_url_candidates(apod: Dict) -> list[str]:
+    """Image URLs to try, best first. `url` is the article page, so never use it.
+
+    `hdurl` (set for videos too) goes through NASA's resizer, which recompresses;
+    the same path under /content/dam/ serves the original upload.
+    """
+    hdurl = apod.get("hdurl")
+    if not hdurl:
+        return []
+    candidates = [hdurl]
+    if "/dynamicimage/assets/" in hdurl:
+        original = hdurl.replace("/dynamicimage/assets/", "/content/dam/", 1).split("?", 1)[0]
+        candidates.insert(0, original)
+    return candidates
+
+
+def download_image(urls: list[str]) -> str:
+    """Download the first URL that returns an image; return the temp file path."""
+    for url in urls:
+        try:
+            with urllib.request.urlopen(url) as response:
+                content_type = response.headers.get("Content-Type", "")
+                if not content_type.startswith("image/"):
+                    print(f"Skipping {url}: Content-Type {content_type!r}")
+                    continue
+                with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                    shutil.copyfileobj(response, tmp_file)
+                    print(f"Downloaded image: {url}")
+                    return tmp_file.name
+        except (urllib.error.URLError, OSError) as e:
+            print(f"Skipping {url}: {e}")
+    raise SystemExit("Could not download an image for this APOD.")
+
+
+def open_background(path: str) -> Image.Image:
+    img = Image.open(path)
+    img.draft("RGB", (MAX_IMAGE_SIDE, MAX_IMAGE_SIDE))  # JPEG: decode at reduced scale
+    img = img.convert("RGB")
+    img.thumbnail((MAX_IMAGE_SIDE, MAX_IMAGE_SIDE), Image.LANCZOS)
+    return img
 
 @lru_cache(maxsize=None)
 def _font_debug(p):  # optional: prints once per resolved path
@@ -341,7 +379,7 @@ def main():
 
     if args.image:
         # --- Local test mode (no network) ---
-        bg = Image.open(args.image).convert("RGB")
+        bg = open_background(args.image)
         writing = ImageDraw.Draw(bg)
         title = args.title or "(Test image)"
         explanation = args.text or "(no description provided)"
@@ -360,16 +398,12 @@ def main():
         media_type = apod.get("media_type")
         apod_date = apod.get("date")
 
-        image_url = pick_image_url(apod)
-        if not image_url:
-            raise SystemExit(f"No downloadable image URL found for media_type={media_type!r} on {apod_date}.")
+        image_urls = image_url_candidates(apod)
+        if not image_urls:
+            raise SystemExit(f"No image URL found for media_type={media_type!r} on {apod_date}.")
 
-        with urllib.request.urlopen(image_url) as response:
-            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                shutil.copyfileobj(response, tmp_file)
-                tmp_path = tmp_file.name
-
-        bg = Image.open(tmp_path).convert("RGB")
+        tmp_path = download_image(image_urls)
+        bg = open_background(tmp_path)
         writing = ImageDraw.Draw(bg)
 
     title_pt = int(bg.width * TITLE_SIZE_FACTOR)
