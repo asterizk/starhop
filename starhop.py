@@ -13,6 +13,7 @@ from pathlib import Path
 
 # stdlib
 import argparse
+import html
 import json
 import os
 import re
@@ -23,6 +24,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import date, datetime
+from html.parser import HTMLParser
 from typing import Dict, Optional
 
 # --- font loader (with a clear search path + one-time debug print) ---
@@ -262,6 +264,37 @@ def clean_text(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip())
 
 
+class _TextExtractor(HTMLParser):
+    """Collects text content, keeping link text and turning <br> into a space."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "br":
+            self.parts.append(" ")
+
+    def handle_data(self, data):
+        self.parts.append(data)
+
+
+def explanation_to_text(s: str) -> str:
+    """Convert the API's HTML explanation into plain caption text."""
+    # Site notices and "Tomorrow's picture" follow the first blank line (<br><br>).
+    s = re.split(r"<br\s*/?>\s*<br\s*/?>", s or "", maxsplit=1, flags=re.IGNORECASE)[0]
+    parser = _TextExtractor()
+    parser.feed(s)
+    parser.close()
+    text = clean_text("".join(parser.parts))
+    text = re.sub(r"^Explanation:\s*", "", text)
+    # Some entries contain escaped markup (e.g. "&lt;a tomorrow" on 2025-03-01).
+    text = re.sub(r"</?a\b\s*>?\s*", "", text)
+    # Removing links leaves spaces like "Keck ." and "( Gemini )" (see #1).
+    text = re.sub(r"\s+([.,;:!?)\]])", r"\1", text)
+    return re.sub(r"([(\[])\s+", r"\1", text)
+
+
 TITLE_FONT_CANDIDATES = [
     "ArchivoBlack-Regular.ttf",
     "NimbusSans-Bold.ttf",
@@ -357,8 +390,8 @@ def main():
                 raise SystemExit("APOD endpoint returned no entries.")
             apod = apod[0]
 
-        title = apod.get("title", "Astronomy Picture of the Day")
-        explanation = apod.get("explanation", "")
+        title = html.unescape(apod.get("title") or "Astronomy Picture of the Day")
+        explanation = explanation_to_text(apod.get("explanation", ""))
         media_type = apod.get("media_type")
         apod_date = apod.get("date")
 
